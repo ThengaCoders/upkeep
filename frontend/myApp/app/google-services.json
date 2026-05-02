@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "180442481393",
+    "project_id": "upkeep-d415f",
+    "storage_bucket": "upkeep-d415f.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:180442481393:android:c65af59533f54aea161f50",
+        "android_client_info": {
+          "package_name": "com.thengacoders.upkeep"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAahCg_02H9S2uUT4Hond2-3RZROihYVyU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
