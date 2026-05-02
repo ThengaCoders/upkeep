@@ -1,5 +1,6 @@
-import AppNavigator from './src/navigation/AppNavigator';
+import React from "react";
+import SecurityLoginScreen from "./components/SecurityLoginScreen.js";
 
 export default function App() {
-  return <AppNavigator />;
+  return <SecurityLoginScreen />;
 }
