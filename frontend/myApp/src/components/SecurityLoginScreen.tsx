@@ -43,10 +43,10 @@ export default function SecurityLoginScreen() {
 
   // 3. New Navigation and Validation Logic
   const handleGetOTP = () => { 
-    // Basic validation: checks if there are at least 8 digits
+    // Basic validation: checks if there are at least 10 digits
     if (!/^\d{8,}$/.test(phone)) {
       console.log("Enter valid phone number");
-      alert("Please enter a valid phone number (at least 8 digits)");
+      alert("Please enter a valid phone number (at least 10 digits)");
       return;
     }
 
@@ -173,9 +173,9 @@ export default function SecurityLoginScreen() {
         <View style={styles.footer}>
           {/* 4. Connected onPress handler */}
           <TouchableOpacity 
-            style={[styles.button, { opacity: phone.length > 5 ? 1 : 0.6 }]}
+            style={[styles.button, { opacity: phone.length > 9 ? 1 : 0.6 }]}
             onPress={handleGetOTP}
-            disabled={phone.length < 5}
+            disabled={phone.length < 9}
           >
             <Text style={styles.buttonText}>Get Verification Code</Text>
             <Ionicons name="arrow-forward" size={20} color="#fff" />
