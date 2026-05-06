@@ -12,10 +12,25 @@ import {
 } from "react-native";
 
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import styles from "../styles/SecurityLoginStyles";
 
 export default function SecurityLoginScreen() {
   const [phone, setPhone] = useState("");
+
+  const router = useRouter();
+
+  const handleGetOTP = () => { 
+    if (!/^\d{8,}$/.test(phone)) {
+      console.log("Enter valid phone number");
+      return;
+    }
+
+    router.push({
+      pathname: "/otp",
+      params: { phone },
+    });
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -105,7 +120,7 @@ export default function SecurityLoginScreen() {
 
         {/* Footer */}
         <View style={styles.footer}>
-          <TouchableOpacity style={styles.button}>
+        <TouchableOpacity style={styles.button} onPress={handleGetOTP}>
             <Text style={styles.buttonText}>
               Get Verification Code
             </Text>
