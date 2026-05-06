@@ -1,6 +1,6 @@
 // app/index.tsx
 
-import SecurityLoginScreen from "./components/SecurityLoginScreen";
+import SecurityLoginScreen from "../src/components/SecurityLoginScreen";
 
 export default function HomeScreen() {
   return <SecurityLoginScreen />;
