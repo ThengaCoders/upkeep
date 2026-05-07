@@ -1,0 +1,131 @@
+from fastapi import FastAPI
+import psycopg2
+from sentence_transformers import SentenceTransformer
+from datetime import datetime
+from pgvector.psycopg2 import register_vector
+from pydantic import BaseModel
+from dotenv import load_dotenv
+import os
+import uuid
+
+load_dotenv()
+
+class SearchRequest(BaseModel):
+    query: str
+
+class IssueRequest(BaseModel):
+    title: str
+    description: str
+    category: str
+    photo_url: str = ""
+    location: str = ""
+    latitude: float | None = None
+    longitude: float | None = None
+    creator_id: str
+
+app = FastAPI()
+model = SentenceTransformer('all-MiniLM-L6-v2')
+
+conn = psycopg2.connect(
+    dbname=os.getenv("DB_NAME"),
+    user=os.getenv("DB_USER"),
+    password=os.getenv("DB_PASSWORD"),
+    host=os.getenv("DB_HOST"),
+    port=os.getenv("DB_PORT")
+)
+register_vector(conn)
+cur = conn.cursor()
+
+@app.post("/check-issue")
+def check_issue(data: IssueRequest):
+    text = data.title + " " + data.description + " " + data.category
+    embedding = model.encode(text).tolist()
+    cur.execute("""
+        SELECT i.id, i.issue_no, i.title, i.description, i.location,i.status,i.priority,
+               e.embedding <-> %s::vector AS semantic_distance,
+               earth_distance(
+                   ll_to_earth(latitude, longitude),
+                   ll_to_earth(%s, %s)
+               ) AS geo_distance
+        FROM issue_embeddings e
+        JOIN issues i ON i.id = e.issue_id
+        WHERE i.latitude IS NOT NULL
+        AND earth_distance(
+            ll_to_earth(latitude, longitude),
+            ll_to_earth(%s, %s)
+        ) < 500
+        LIMIT 5;
+    """, (embedding, data.latitude, data.longitude, data.latitude, data.longitude))
+    similar = cur.fetchall()
+    return {
+        "matches": [
+            {
+                      "id": r[0],
+                      "issue_no": r[1],
+                      "title": r[2],
+                      "description": r[3],
+                      "location": r[4],
+                      "status": r[5],
+                      "priority": r[6],
+                      "semantic_distance": r[7],
+                      "geo_distance": r[8]
+             }
+            for r in similar
+        ]
+    }
+
+@app.post("/add-issue")
+def add_issue(data: IssueRequest):
+    text = data.title + " " + data.description + " " + data.category
+    embedding = model.encode(text)
+    cur.execute("""
+        INSERT INTO issues (title, description, category, photo_url, location, latitude, longitude, creator_id)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        RETURNING id;
+    """, (data.title, data.description, data.category, data.photo_url, data.location, data.latitude, data.longitude, data.creator_id))
+    issue_id = cur.fetchone()[0]
+    year = datetime.now().year
+    issue_no = f"{year}-{str(uuid.uuid4())[:8].upper()}"
+    cur.execute(
+        "UPDATE issues SET issue_no = %s WHERE id = %s",
+        (issue_no, issue_id)
+    )
+    cur.execute("""
+        INSERT INTO issue_embeddings (issue_id, embedding)
+        VALUES (%s, %s::vector)
+        ON CONFLICT (issue_id) DO NOTHING;
+    """, (issue_id, embedding.tolist()))
+    conn.commit()
+    return {"issue_no": issue_no}
+
+@app.post("/search")
+def search(request: SearchRequest):
+    query_embedding = model.encode(request.query).tolist()
+    cur.execute("""
+        WITH ranked AS (
+            SELECT i.id, i.title, i.description, i.location, i.latitude, i.longitude,i.status,i.priority,
+                   e.embedding <-> %s::vector AS distance
+            FROM issue_embeddings e
+            JOIN issues i ON i.id = e.issue_id
+        )
+        SELECT * FROM ranked
+        ORDER BY distance
+        LIMIT 5;
+    """, (query_embedding,))
+    results = cur.fetchall()
+    return {
+        "results": [
+            {
+            "id": row[0],
+            "title": row[1],
+            "description": row[2],
+            "location": row[3],
+            "latitude": row[4],
+            "longitude": row[5],
+            "status": row[6],
+            "priority": row[7],
+            "distance": row[8]
+        }
+            for row in results
+        ]
+    }

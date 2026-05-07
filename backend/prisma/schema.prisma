@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  phone     String   @unique
+  name      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  issues  Issue[]
+  upvotes Upvote[]
+}
+
+model Issue {
+  id          String   @id @default(uuid())
+  issueNo     String?  @unique
+  title       String
+  description String?
+  category    String?
+  photoUrl    String?  @default("")
+  location    String?  @default("")
+  latitude    Float?
+  longitude   Float?
+  creatorId   String?
+  priority    Int      @default(0)
+  status      String   @default("open")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  creator User?    @relation(fields: [creatorId], references: [id])
+  upvotes Upvote[]
+}
+
+model Upvote {
+  id        String   @id @default(uuid())
+  issueId   String
+  userId    String
+  createdAt DateTime @default(now())
+
+  issue Issue @relation(fields: [issueId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([issueId, userId])
+}
